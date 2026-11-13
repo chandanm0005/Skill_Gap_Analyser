@@ -4,10 +4,18 @@
 
 ResumeHub is a full-stack career intelligence platform that helps students move from **resume preparation** to **job readiness**.
 
-It brings resume building, resume parsing, ATS screening, job discovery, personalized resume-to-job analysis, skill-gap identification, and placement-readiness tracking into one workflow.
+It brings resume building, resume parsing, ATS screening, job discovery, personalized resume-to-job analysis, skill-gap identification, and placement-readiness tracking into one connected workflow.
 
 > **Academic project:** REVA University
-> **Repository:** [Atharv-M-Patil/Skill_Gap_Analyser](https://github.com/Atharv-M-Patil/Skill_Gap_Analyser)
+> **Repository:** [chandanm0005/Skill_Gap_Analyser](https://github.com/chandanm0005/Skill_Gap_Analyser)
+
+---
+
+## 🚀 Live Demo
+
+**[https://skill-gap-analyser-nnyu.onrender.com](https://skill-gap-analyser-nnyu.onrender.com)**
+
+> The live instance uses in-memory storage. Registered accounts, resumes, profiles, and analysis reports reset on each server restart or redeploy. The 150-job Opportunity Library is always available.
 
 ---
 
@@ -25,7 +33,7 @@ Students often use separate tools to:
 
 Because these activities are disconnected, students do not get a clear answer to the most important question:
 
-> **“How ready am I for this specific job, and what should I do next?”**
+> **"How ready am I for this specific job, and what should I do next?"**
 
 ### The solution
 
@@ -131,11 +139,11 @@ flowchart TB
 
 | Layer | Responsibility | Main implementation |
 |---|---|---|
-| Presentation | Responsive pages, navigation, forms, dashboards, reports | React, Wouter, Tailwind CSS, Radix UI |
-| Client data | API calls, cache, loading states, auth-aware UI | TanStack React Query |
+| Presentation | Responsive pages, navigation, forms, dashboards, reports | React 19, Wouter, Tailwind CSS v4, Radix UI |
+| Client data | API calls, cache, loading states, auth-aware UI | TanStack React Query v5 |
 | Resume utilities | Read PDF, DOCX, and text files; export resumes | `pdfjs-dist`, `mammoth`, `html2canvas`, `jspdf` |
 | HTTP/API | Authentication, jobs, resumes, profiles, reports, analytics | Express 5 and TypeScript |
-| Authentication | Local credentials, sessions, protected routes | Passport Local, `express-session` |
+| Authentication | Local credentials, sessions, protected routes | Passport Local, `express-session`, Memorystore |
 | Analysis | Skill extraction, normalization, evidence classification, scoring | `server/routes.ts` |
 | Storage boundary | Application-facing persistence contract | `IStorage` in `server/storage.ts` |
 | Development persistence | Fast local execution without a database | `MemStorage` |
@@ -177,7 +185,7 @@ uses **in-memory storage**:
 | Job data | `Data/job_postings_dataset.json` | The 150 job postings are read from this JSON file when the server starts and loaded into memory. |
 | Database schema | PostgreSQL through Drizzle ORM | `shared/schema.ts` defines PostgreSQL tables, relationships, JSONB fields, timestamps, and cascading deletes. |
 | Database connection | `DATABASE_URL` | Used by Drizzle Kit for database commands such as `npm run db:push`; the current runtime storage adapter does not connect to PostgreSQL. |
-| Sessions | In-memory session store | Login sessions also reset when the server restarts. |
+| Sessions | In-memory session store (Memorystore) | Login sessions also reset when the server restarts. |
 
 #### Current request flow
 
@@ -220,15 +228,17 @@ The analysis engine combines three inputs:
 
 ### Skill extraction and normalization
 
-The backend reads skill statements from the job description and normalizes common aliases before comparison.
+The backend reads skill statements from the job description and normalizes common aliases before comparison. The normalization map is defined in `server/routes.ts`.
 
 Examples:
 
 | Input variants | Normalized value |
 |---|---|
 | `JS`, `JavaScript` | `javascript` |
+| `TS`, `TypeScript` | `typescript` |
 | `Postgres`, `PostgreSQL` | `postgresql` |
 | `Amazon Web Services`, `AWS` | `aws` |
+| `Node.js`, `NodeJS` | `node.js` |
 | `React.js`, `ReactJS` | `react` |
 | `REST API`, `RESTful APIs` | `rest apis` |
 
@@ -257,6 +267,20 @@ Current skill weighting:
 
 The report is an advisory signal, not a hiring decision or a guarantee of eligibility.
 
+### Built-in learning resources
+
+The analysis engine maps missing skills to curated resources and project ideas:
+
+| Skill | Resource | Sample project idea |
+|---|---|---|
+| AWS | AWS Skill Builder | Deploy a containerized API with IAM and CloudWatch |
+| Kubernetes | Kubernetes Basics | Deploy a multi-service app with a local cluster |
+| Java | Dev.java Learning | Build a REST service with validation and tests |
+| Spring Boot | Spring Guides | Create a Spring Boot CRUD API backed by PostgreSQL |
+| SQL | SQLBolt | Model and query an analytics dataset with joins and indexes |
+| React | React Learn | Build a data-driven dashboard with loading and error states |
+| TypeScript | TypeScript Handbook | Convert a small JavaScript app to strict TypeScript |
+
 ---
 
 ## 5. Feature modules
@@ -265,7 +289,7 @@ The report is an advisory signal, not a hiring decision or a guarantee of eligib
 
 | Module | What it does |
 |---|---|
-| Home | Explains the platform and shows platform-level opportunity statistics |
+| Home | Explains the platform and shows live platform-level opportunity statistics |
 | Resume Builder | Creates a structured resume with live preview and PDF export |
 | Resume Vault | Uploads, extracts, stores, replaces, and deletes owned resumes |
 | ATS Screener | Checks a resume against pasted or uploaded job-description content |
@@ -277,11 +301,13 @@ The report is an advisory signal, not a hiring decision or a guarantee of eligib
 ### Authentication and account boundaries
 
 - Email/password registration and login
-- Session-based authentication
+- Session-based authentication using Passport Local strategy
+- Passwords hashed with Node.js `scrypt`
+- HTTP-only session cookies
 - Development-only Demo Mode
-- Auth-aware redirects back to the requested page
+- Auth-aware redirects back to the requested page after login
 - User-scoped resume, profile, analytics, and report access
-- Google OAuth intentionally removed
+- Students cannot read another student's resume or analysis report
 
 ---
 
@@ -289,13 +315,15 @@ The report is an advisory signal, not a hiring decision or a guarantee of eligib
 
 The source dataset is [Data/job_postings_dataset.json](./Data/job_postings_dataset.json).
 
+> **Contributing:** Team members can clone `https://github.com/chandanm0005/Skill_Gap_Analyser`, create a feature branch, and open a pull request into `main`.
+
 | Dataset characteristic | Current value |
 |---|---|
 | Postings | 150 |
 | Companies | 25 |
 | Role families | 6 |
-| Identifier | Unique `job_id` |
-| Data handling | Loaded at server startup |
+| Identifier | Unique `job_id` (e.g. `JD001`) |
+| Data handling | Loaded at server startup into memory |
 | Duplicate titles | Preserved as separate records |
 | Data nature | Synthetic / representative records |
 
@@ -388,12 +416,16 @@ The dataset is loaded into the storage layer and exposed through the jobs API. E
 │   ├── index.ts                        # Express/Vite server entry point
 │   ├── routes.ts                       # API routes and analysis engine
 │   ├── static.ts                       # Production static-file serving
-│   ├── storage.ts                      # IStorage and MemStorage
+│   ├── storage.ts                      # IStorage interface and MemStorage
 │   └── vite.ts                         # Development Vite integration
 ├── shared/
 │   └── schema.ts                       # Drizzle/PostgreSQL domain schema
 ├── script/
 │   └── build.ts                        # Client and server build orchestration
+├── .env.example                        # Environment variable template
+├── drizzle.config.ts                   # Drizzle Kit configuration
+├── render.yaml                         # Render deployment blueprint
+├── vite.config.ts                      # Vite client build configuration
 ├── package.json
 └── README.md
 ```
@@ -402,19 +434,28 @@ The dataset is loaded into the storage layer and exposed through the jobs API. E
 
 ## 10. Technology stack
 
-| Area | Technologies |
-|---|---|
-| Client | React 19, TypeScript, Wouter |
-| UI | Tailwind CSS v4, Radix UI, Framer Motion, Lucide |
-| Client data | TanStack React Query |
-| Server | Node.js, Express 5, TypeScript |
-| Authentication | Passport Local, `express-session`, Memorystore |
-| Resume parsing | `pdfjs-dist`, `mammoth` |
-| Resume export | `html2canvas`, `jspdf` |
-| Validation | Zod, Drizzle Zod |
-| Data model | Drizzle ORM, PostgreSQL schema definitions |
-| Local runtime storage | In-memory `MemStorage` |
-| Build | Vite, esbuild, tsx |
+| Area | Technology | Version |
+|---|---|---|
+| Client framework | React | 19 |
+| Language | TypeScript | 5.6.3 |
+| Client routing | Wouter | 3 |
+| UI styling | Tailwind CSS | v4 |
+| Component primitives | Radix UI | (full suite) |
+| Animations | Framer Motion | 12 |
+| Icons | Lucide React | latest |
+| Client data | TanStack React Query | v5 |
+| Forms | React Hook Form + Zod | latest |
+| Charts | Recharts | 2 |
+| Server framework | Express | 5 |
+| Server runtime | Node.js | ≥ 20 |
+| Authentication | Passport Local + express-session | latest |
+| Session store | Memorystore | latest |
+| Resume parsing | pdfjs-dist, mammoth | latest |
+| Resume export | html2canvas, jspdf | latest |
+| Validation | Zod + drizzle-zod | latest |
+| Data model | Drizzle ORM (PostgreSQL schema) | 0.45 |
+| Local runtime storage | In-memory MemStorage | — |
+| Build tool | Vite + esbuild | Vite 7, esbuild 0.25 |
 
 ---
 
@@ -433,14 +474,18 @@ npm install
 
 ### Environment variables
 
-Create a `.env` file when needed:
+Copy `.env.example` to `.env` and fill in the values:
+
+```bash
+cp .env.example .env
+```
 
 ```env
 SESSION_SECRET=replace-with-a-long-random-value
 DATABASE_URL=
 ```
 
-`SESSION_SECRET` is recommended for deployment. Development has a fallback so the project can run locally without additional configuration.
+`SESSION_SECRET` is recommended for deployment. Development has a fallback so the project can run locally without additional configuration. `DATABASE_URL` is only needed if you run Drizzle database commands.
 
 ### Start development mode
 
@@ -556,9 +601,9 @@ Before production deployment, the storage interface should be connected to persi
 - Resume, profile, analytics, and report queries are scoped to the authenticated user ID.
 - Students cannot read another student's resume or analysis report.
 - Officer checks are enforced server-side for officer-only endpoints.
-- Passwords are hashed with Node.js `scrypt`.
+- Passwords are hashed with Node.js `scrypt` using timing-safe comparison.
 - Session cookies are HTTP-only.
-- Job lookup uses exact `job_id` values.
+- Job lookup uses exact `job_id` values, never user-controlled title strings.
 - Secrets belong in environment variables and must not be committed.
 - `/api/auth/me` returns an unauthenticated state for logged-out users; protected resources return `401`.
 
